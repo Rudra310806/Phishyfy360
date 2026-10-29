@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishify360 | Phishing Detection</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #131c30;
+            --border: #29364f;
+            --text: #edf3ff;
+            --muted: #9aaaca;
+            --accent: #70a5ff;
+            --green: #46d6a0;
+            --red: #ff727f;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: radial-gradient(ellipse at top, #17294a, var(--bg) 60%);
+            color: var(--text);
+            font-family: Segoe UI, Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            padding: 45px 20px 25px;
+        }
+
+        .logo {
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .logo span { color: var(--accent); }
+
+        header p {
+            color: var(--muted);
+            margin-top: 10px;
+        }
+
+        main {
+            width: min(1100px, 92%);
+            margin: 0 auto 50px;
+        }
+
+        .intro {
+            text-align: center;
+            margin: 20px 0 28px;
+        }
+
+        .intro h1 { font-size: clamp(25px, 4vw, 38px); }
+        .intro p { color: var(--muted); line-height: 1.6; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .card {
+            background: rgba(19, 28, 48, .94);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 23px;
+            min-width: 0;
+        }
+
+        .icon { font-size: 29px; }
+        h2 { font-size: 20px; margin: 12px 0 8px; }
+        .desc { color: var(--muted); font-size: 14px; line-height: 1.5; min-height: 42px; }
+
+        label {
+            display: block;
+            margin: 18px 0 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        input[type="text"], textarea, input[type="file"] {
+            width: 100%;
+            color: var(--text);
+            background: #0c1425;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            font: inherit;
+            font-size: 13px;
+        }
+
+        textarea { min-height: 150px; resize: vertical; }
+        input[type="file"] { padding: 9px; }
+
+        button {
+            width: 100%;
+            margin-top: 18px;
+            border: 0;
+            border-radius: 10px;
+            padding: 13px;
+            background: var(--accent);
+            color: #081326;
+            font-size: 14px;
+            font-weight: 750;
+            cursor: pointer;
+        }
+
+        button:hover { filter: brightness(1.1); }
+        button:disabled { opacity: .6; cursor: wait; }
+
+        .notice, .result {
+            margin: 22px 0;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            background: var(--panel);
+        }
+
+        .result h2 { margin-top: 0; }
+        .verdict { font-size: 25px; font-weight: 800; }
+        .phishing { color: var(--red); }
+        .legitimate { color: var(--green); }
+        .muted { color: var(--muted); overflow-wrap: anywhere; }
+        .error { color: #ff9ba4; }
+
+        .bar {
+            height: 9px;
+            background: #29364f;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: var(--accent);
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px 20px 35px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        @media (max-width: 850px) {
+            .grid { grid-template-columns: 1fr; }
+            .desc { min-height: auto; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Phishify<span>360</span></div>
+        <p>Multimodal phishing detection</p>
+    </header>
+
+    <main>
+        <section class="intro">
+            <h1>Detect phishing from three signals.</h1>
+            <p>Analyze a URL, webpage HTML, or a screenshot using trained machine-learning models.</p>
+        </section>
+
+        {% if error %}
+        <section class="notice error" role="alert">
+            <strong>Analysis error</strong>
+            <p>{{ error }}</p>
+        </section>
+        {% endif %}
+
+        {% if result %}
+        <section class="result" aria-live="polite">
+            <h2>{{ result.type }}</h2>
+            <div class="verdict {{ 'phishing' if result.label == 'Phishing' else 'legitimate' }}">
+                {{ result.label }}
+            </div>
+            <p>Model confidence: <strong>{{ "%.2f"|format(result.confidence) }}%</strong></p>
+            <div class="bar">
+                <div class="bar-fill" style="width: {{ result.confidence }}%;"></div>
+            </div>
+            <p>Estimated phishing probability:
+                <strong>{{ "%.2f"|format(result.phishing_probability) }}%</strong>
+            </p>
+            <p class="muted">Input: {{ result.input_preview }}</p>
+            <p class="muted">This is a model prediction, not a guarantee of safety.</p>
+        </section>
+        {% endif %}
+
+        <section class="grid">
+            <article class="card">
+                <div class="icon">🔗</div>
+                <h2>URL Detection</h2>
+                <p class="desc">Inspect a link for patterns associated with phishing URLs.</p>
+                <form method="POST">
+                    <input type="hidden" name="analysis_type" value="url">
+                    <label for="url">Website URL</label>
+                    <input id="url" type="text" name="url"
+                           placeholder="https://example.com" required>
+                    <button type="submit">Analyze URL</button>
+                </form>
+            </article>
+
+            <article class="card">
+                <div class="icon">🖼️</div>
+                <h2>Screenshot Detection</h2>
+                <p class="desc">Analyze a webpage screenshot with EfficientNet-B0.</p>
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="analysis_type" value="image">
+                    <label for="screenshot">Screenshot image</label>
+                    <input id="screenshot" type="file" name="screenshot"
+                           accept="image/*" required>
+                    <button type="submit">Analyze Screenshot</button>
+                </form>
+            </article>
+
+            <article class="card">
+                <div class="icon">🧩</div>
+                <h2>HTML Detection</h2>
+                <p class="desc">Analyze webpage source code using the trained HTML classifier.</p>
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="analysis_type" value="html">
+                    <label for="html_text">Paste HTML source</label>
+                    <textarea id="html_text" name="html_text"
+                              placeholder="Paste HTML source here..."></textarea>
+                    <label for="html_file">Or upload an HTML file</label>
+                    <input id="html_file" type="file" name="html_file"
+                           accept=".html,.htm,text/html">
+                    <button type="submit">Analyze HTML</button>
+                </form>
+            </article>
+        </section>
+
+        <section class="notice">
+            <strong>Research prototype</strong>
+            <p class="muted">Results depend on training data and model limitations. Do not use this prototype as the sole basis for deciding whether a website is safe.</p>
+        </section>
+    </main>
+
+    <footer>Phishify360 · URL + Screenshot + HTML analysis</footer>
+
+    <script>
+        document.querySelectorAll("form").forEach(form => {
+            form.addEventListener("submit", () => {
+                const button = form.querySelector("button");
+                button.disabled = true;
+                button.textContent = "Analyzing...";
+            });
+        });
+    </script>
+</body>
+</html>
